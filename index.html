@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Online Exam - Living in the IT Era</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#2563eb">
+  <style>
+    body { font-family: 'Inter', sans-serif; padding-top: 80px; }
+    .question-grid { display:grid; grid-template-columns:1fr auto; gap:1rem; align-items:center; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 transition-colors duration-300">
+
+  <!-- Navbar -->
+  <nav id="navbar" class="hidden fixed top-0 left-0 right-0 bg-white shadow-md z-50">
+    <div class="container mx-auto px-4 sm:px-6 md:px-8 max-w-4xl h-16 flex justify-between items-center">
+      <div class="text-lg font-bold text-blue-600">Online Exam</div>
+      <div class="flex items-center gap-4">
+        <div id="student-info-nav" class="text-right hidden sm:block">
+          <p class="font-medium text-sm text-gray-800"></p>
+          <p class="text-xs text-gray-500"></p>
+        </div>
+        <button id="logout-btn-nav" class="bg-red-500 text-white px-3 py-2 text-sm rounded-lg hover:bg-red-600">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="app" class="container mx-auto p-4 sm:p-6 md:p-8 max-w-4xl">
+    <!-- Header -->
+    <header class="text-center mb-8">
+      <h1 class="text-3xl sm:text-4xl font-bold text-blue-600">GEN 008: Living in the IT Era</h1>
+      <p class="text-gray-500 mt-2">First Term Online Examination</p>
+    </header>
+
+    <!-- Auth Section -->
+    <div id="auth-section" class="bg-white p-8 rounded-lg shadow-lg">
+      <div id="auth-container">
+        <!-- Login -->
+        <div id="login-form">
+          <h2 class="text-2xl font-bold mb-6 text-center">Student Login</h2>
+          <div class="space-y-4">
+            <input type="email" id="login-email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="login-password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <button id="login-btn" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600">Login</button>
+          </div>
+          <p class="text-center mt-4 text-sm">No account? <a href="#" id="show-register" class="text-blue-500 hover:underline">Register here</a></p>
+        </div>
+
+        <!-- Register -->
+        <div id="register-form" class="hidden">
+          <h2 class="text-2xl font-bold mb-6 text-center">Student Registration</h2>
+          <div class="space-y-4">
+            <input type="text" id="register-name" placeholder="Full Name" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <input type="email" id="register-email" placeholder="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="register-password" placeholder="Password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <button id="register-btn" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600">Register</button>
+          </div>
+          <p class="text-center mt-4 text-sm">Already have an account? <a href="#" id="show-login" class="text-blue-500 hover:underline">Login here</a></p>
+        </div>
+      </div>
+      <p id="auth-error" class="text-red-500 text-center mt-4"></p>
+    </div>
+
+    <!-- Exam -->
+    <div id="exam-section" class="hidden">
+      <form id="exam-form">
+        <!-- Part I -->
+        <div class="bg-white p-8 rounded-lg shadow-lg mb-6">
+          <h2 class="text-xl font-bold mb-4 border-b pb-2">Part I: Identification (15 pts)</h2>
+          <p class="mb-4 text-gray-600">Select the best answer from the dropdown for each description.</p>
+          <div id="identification-questions-container" class="space-y-4"></div>
+        </div>
+        <!-- Part II -->
+        <div class="bg-white p-8 rounded-lg shadow-lg mb-6">
+          <h2 class="text-xl font-bold mb-4 border-b pb-2">Part II: Matching Type (20 pts)</h2>
+          <div id="matching-type-container" class="space-y-4"></div>
+        </div>
+        <!-- Part III -->
+        <div class="bg-white p-8 rounded-lg shadow-lg mb-6">
+          <h2 class="text-xl font-bold mb-4 border-b pb-2">Part III: Application (15 pts)</h2>
+          <p class="mb-4 text-gray-600">Describe/draw Star, Bus, Ring topology (3 nodes + 1 router).</p>
+          <textarea id="application-answer" rows="10" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="Describe or draw the topologies here..."></textarea>
+        </div>
+        <button type="submit" class="w-full bg-green-500 text-white py-3 text-lg font-bold rounded-lg hover:bg-green-600">Submit Exam</button>
+      </form>
+    </div>
+
+    <!-- Results (shows live final score + status) -->
+    <div id="results-section" class="hidden text-center bg-white p-8 rounded-lg shadow-lg">
+      <h2 class="text-3xl font-bold text-green-600 mb-4">Exam Submitted!</h2>
+      <p class="text-lg mb-2">Thank you, <span id="result-student-name" class="font-bold"></span>.</p>
+
+      <div class="grid gap-3 max-w-sm mx-auto text-left">
+        <div class="flex items-center justify-between">
+          <span class="text-gray-600">Auto-graded score (Parts I & II):</span>
+          <span id="auto-score" class="text-xl font-semibold text-blue-700">0</span>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <span class="text-gray-600">Final score:</span>
+          <span id="final-score" class="text-2xl font-bold text-gray-900">—</span>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <span class="text-gray-600">Status:</span>
+          <span id="result-status" class="text-sm font-medium text-gray-700">pending_manual_check</span>
+        </div>
+      </div>
+
+      <p class="text-gray-500 mt-6">You may close this window or log out.</p>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import {
+      getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+      onAuthStateChanged, signOut, updateProfile
+    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+    import {
+      getFirestore, doc, setDoc, getDoc, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAeozhDcv3sq1vZC6w0MbcV2lde5TatDro",
+      authDomain: "online-exam-system-f24df.firebaseapp.com",
+      projectId: "online-exam-system-f24df",
+      storageBucket: "online-exam-system-f24df.firebasestorage.app",
+      messagingSenderId: "846473898385",
+      appId: "1:846473898385:web:a7dfb984f55b0976d0d230"
+    };
+
+    // Admin allowlist for UX redirect (real protection is in Firestore rules)
+    const ADMIN_EMAILS = new Set([
+      "admin@gestaac.edu.ph"
+      // add more admin emails if needed
+    ]);
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const authSection = document.getElementById('auth-section');
+    const examSection = document.getElementById('exam-section');
+    const resultsSection = document.getElementById('results-section');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const showRegister = document.getElementById('show-register');
+    const showLogin = document.getElementById('show-login');
+    const navbar = document.getElementById('navbar');
+    const studentInfoNav = document.getElementById('student-info-nav');
+
+    // Exam data
+    const examData = {
+      identification: {
+        questions: [
+          "The main display screen.","The speakers for audio output.","The main computer box or tower.",
+          "A pointing device to interact with the GUI.","Another speaker for audio output.","A device to print documents.",
+          "The primary input device for typing.","Communicates to the computer as a pointing device to icons...",
+          "Regulates the power coming into the devices...","A device that stores files to your computer for future access.",
+          "It houses the motherboard, processor, hard disk, RAM, GPU...","It is where all the computer's devices are connected...",
+          "Set of commands that are 'understandable' to the computer.","A type of network for businesses over locations.",
+          "A type of network that extends a private network across the internet."
+        ],
+        answers: [
+          "monitor","speakers","system unit","mouse","speakers","printer","keyboard","mouse",
+          "power supply","hard disk","system unit","motherboard","software","enterprise private network","vpn"
+        ],
+        options: [
+          "monitor","speakers","system unit","mouse","printer","keyboard","power supply",
+          "hard disk","motherboard","software","enterprise private network","vpn","ram","gpu","router"
+        ]
+      },
+      matching: {
+        columnA: ["PAN","LAN","WAN","WLAN","CAN","MAN","StAN","SysAN","POLAN","ΕΡΝ","VPN",
+          "Personal Computer","Desktop","Laptop","Netbooks and Tablets","Handheld",
+          "Workstation","Server","Mainframe","Supercomputer"],
+        columnB: [
+          "restrained to a single person","connects computers within a limited area","most common example is the Internet",
+          "makes use of wireless network technology like Wi-Fi","usually used in places like a school or college",
+          "connects computers over a city, town or metropolitan area","connects groups of storage devices to several servers",
+          "useful for processing applications that require high network performance",
+          "point to multipoint LAN architecture","mostly used by businesses that want a secure connection over various locations",
+          "gives you protected network connection","Computers for personal use","PCs in a permanent location, like a desk",
+          "Portable PCs housed in a single unit","Smaller processing power than a laptop","Can be held by your hand",
+          "Powerful computer for high-end work","Serves other computers in a network",
+          "Process millions of transactions per day","Superspeed calculations"
+        ]
+      }
+    };
+
+    const toggleForms = () => {
+      loginForm.classList.toggle('hidden');
+      registerForm.classList.toggle('hidden');
+      document.getElementById('auth-error').textContent = '';
+    };
+    showRegister?.addEventListener('click', (e) => { e.preventDefault(); toggleForms(); });
+    showLogin?.addEventListener('click', (e) => { e.preventDefault(); toggleForms(); });
+
+    const showView = (view) => {
+      authSection.classList.add('hidden');
+      examSection.classList.add('hidden');
+      resultsSection.classList.add('hidden');
+      document.getElementById(view).classList.remove('hidden');
+    };
+
+    function redirectIfAdmin(user) {
+      if (user?.email && ADMIN_EMAILS.has(user.email.toLowerCase())) {
+        // adjust path if your admin page lives elsewhere
+        window.location.href = "/admin.html";
+        return true;
+      }
+      return false;
+    }
+
+    // Build questions
+    const setupIdentificationQuestions = () => {
+      const container = document.getElementById('identification-questions-container');
+      const { questions, options } = examData.identification;
+      const optionsHtml = [...options].sort(() => Math.random() - 0.5)
+        .map(opt => `<option value="${opt}">${opt.charAt(0).toUpperCase() + opt.slice(1)}</option>`).join('');
+      questions.forEach((qText, index) => {
+        container.insertAdjacentHTML('beforeend', `
+          <div class="question-grid">
+            <label class="font-medium">${index + 1}. ${qText}</label>
+            <select data-q-id="${index}" class="px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+              <option value="">Select an answer...</option>
+              ${optionsHtml}
+            </select>
+          </div>`);
+      });
+    };
+
+    const setupMatchingQuestions = () => {
+      const container = document.getElementById('matching-type-container');
+      const { columnA, columnB } = examData.matching;
+      const optionsHtml = [...columnB].sort(() => Math.random() - 0.5)
+        .map(opt => `<option value="${opt}">${opt}</option>`).join('');
+      columnA.forEach((item, index) => {
+        container.insertAdjacentHTML('beforeend', `
+          <div class="question-grid">
+            <label class="font-medium">${index + 1}. ${item}</label>
+            <select data-q-match="${index}" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+              <option value="">Select an answer...</option>
+              ${optionsHtml}
+            </select>
+          </div>`);
+      });
+    };
+
+    // Auth state → show exam / results, live-updating final score when admin finalizes
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    navbar.classList.add('hidden');
+    showView('auth-section');
+    return;
+  }
+
+  // Optional: if you allowlist admins by email, send them to admin.html
+  if (redirectIfAdmin(user)) return;
+
+  navbar.classList.remove('hidden');
+  studentInfoNav.children[0].textContent = user.displayName || '';
+  studentInfoNav.children[1].textContent = user.email || '';
+
+  const studentRef = doc(db, "students", user.uid);
+
+  try {
+    // 1) Ensure the doc exists for this user
+    const snap = await getDoc(studentRef);
+    if (!snap.exists()) {
+      // Create a minimal record so rules + listener work cleanly
+      await setDoc(studentRef, {
+        name: user.displayName || "",
+        email: user.email || "",
+        examSubmitted: false,
+        createdAt: new Date()
+      });
+    }
+  } catch (e) {
+    console.error("Failed to init student doc:", e);
+    alert("Could not initialize your student record. Please try again.");
+    return; // don't attach the listener if init failed
+  }
+
+  // 2) Attach realtime listener
+  onSnapshot(studentRef, (snap) => {
+    if (!snap.exists()) {
+      // Shouldn't happen after the init above, but keep it safe.
+      showView('exam-section');
+      return;
+    }
+
+    const data = snap.data();
+
+    if (!data.examSubmitted) {
+      showView('exam-section');
+      return;
+    }
+
+    // Show live results
+    document.getElementById('result-student-name').textContent = user.displayName || '';
+    document.getElementById('auto-score').textContent = Number(data.autoScore ?? 0);
+
+    const finalScoreEl = document.getElementById('final-score');
+    const statusEl = document.getElementById('result-status');
+    statusEl.textContent = data.status || 'pending_manual_check';
+
+    if (data.status === 'finalized') {
+      finalScoreEl.textContent = Number(
+        data.finalScore ?? (Number(data.autoScore || 0) + Number(data.applicationScore || 0))
+      );
+      finalScoreEl.classList.remove('text-gray-400');
+    } else {
+      finalScoreEl.textContent = 'Pending';
+      finalScoreEl.classList.add('text-gray-400');
+    }
+
+    showView('results-section');
+  }, (err) => {
+    console.error("onSnapshot error:", err);
+    // Keep the user signed in; just show the exam or a friendly error
+    alert("Could not load your exam status. Please try again later.");
+  });
+});
+
+
+    // Register
+    document.getElementById('register-btn')?.addEventListener('click', () => {
+      const name = document.getElementById('register-name').value;
+      const email = document.getElementById('register-email').value;
+      const password = document.getElementById('register-password').value;
+      const errorEl = document.getElementById('auth-error');
+
+      if (!name || !email || !password) {
+        errorEl.textContent = "Please fill in all fields.";
+        return;
+      }
+
+      createUserWithEmailAndPassword(auth, email, password)
+        .then(async (cred) => {
+          await updateProfile(cred.user, { displayName: name });
+          await setDoc(doc(db, "students", cred.user.uid), {
+            name, email, examSubmitted: false
+          });
+        })
+        .catch((err) => { errorEl.textContent = err.message; });
+    });
+
+    // Login
+    document.getElementById('login-btn')?.addEventListener('click', () => {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      signInWithEmailAndPassword(auth, email, password)
+        .catch((error) => { document.getElementById('auth-error').textContent = error.message; });
+    });
+
+    // Logout
+    document.getElementById('logout-btn-nav')?.addEventListener('click', () => { signOut(auth); });
+
+    // Submit exam
+    document.getElementById('exam-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!confirm("Submit your exam now? This cannot be undone.")) return;
+
+      let autoScore = 0;
+      const detailedAnswers = { identification: {}, matching: {}, application: "" };
+
+      // Part I scoring
+      document.querySelectorAll('#identification-questions-container select').forEach(select => {
+        const qIndex = select.dataset.qId;
+        const userAnswer = (select.value || "").toLowerCase();
+        const correctAnswer = (examData.identification.answers[qIndex] || "").toLowerCase();
+        const isCorrect = userAnswer === correctAnswer;
+        if (isCorrect) autoScore++;
+        detailedAnswers.identification[qIndex] = {
+          userAnswer: select.value,
+          correctAnswer: examData.identification.answers[qIndex],
+          isCorrect
+        };
+      });
+
+      // Part II scoring
+      document.querySelectorAll('#matching-type-container select').forEach(select => {
+        const qIndex = select.dataset.qMatch;
+        const userAnswer = select.value;
+        const correctAnswer = examData.matching.columnB[qIndex];
+        const isCorrect = userAnswer === correctAnswer;
+        if (isCorrect) autoScore++;
+        detailedAnswers.matching[qIndex] = { userAnswer, correctAnswer, isCorrect };
+      });
+
+      // Part III answer
+      detailedAnswers.application = document.getElementById('application-answer').value.trim();
+
+      const user = auth.currentUser;
+      if (user) {
+        const studentDocRef = doc(db, "students", user.uid);
+        const snap = await getDoc(studentDocRef);
+        const studentData = snap.exists() ? snap.data() : {};
+
+        await setDoc(studentDocRef, {
+          ...studentData,
+          name: studentData.name || (user.displayName || ""),
+          email: studentData.email || (user.email || ""),
+          autoScore: autoScore,
+          finalScore: autoScore,        // initial finalScore equals autoScore
+          applicationScore: 0,           // to be given by admin
+          status: "pending_manual_check",
+          answers: detailedAnswers,
+          examSubmitted: true,
+          submittedAt: new Date()
+        });
+
+        // The onSnapshot above will flip the UI to the results screen
+        // and keep it updated in real time.
+      }
+    });
+
+    // Build questions now
+    (function init() {
+      setupIdentificationQuestions();
+      setupMatchingQuestions();
+    })();
+  </script>
+  <script>
+  // Adjust basePath if your repo name changes
+  const basePath = "/gen008exam/";
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register(basePath + "service-worker.js")
+        .catch(err => console.error("[SW] registration failed:", err));
+    });
+  }
+</script>
+
+</body>
+</html>

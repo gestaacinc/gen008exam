@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Admin • Online Exam Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="manifest" href="./manifest.webmanifest">
+    <meta name="theme-color" content="#2563eb">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .mono { font-family: ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace; }
+    .spinner { width: 18px; height: 18px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+  <!-- Top bar -->
+  <nav class="sticky top-0 z-50 bg-white border-b shadow-sm">
+    <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+      <div class="font-bold text-blue-600">Admin • Online Exam</div>
+      <div class="flex items-center gap-3">
+        <span id="whoami" class="text-sm text-gray-600"></span>
+        <!-- hidden until an admin is logged in -->
+        <button id="logoutBtn" class="hidden px-3 py-1.5 rounded-lg bg-red-500 text-white hover:bg-red-600">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto p-4 md:p-6">
+    <!-- Login -->
+    <section id="loginPanel" class="max-w-md mx-auto bg-white p-6 rounded-xl shadow-md">
+      <h1 class="text-2xl font-bold mb-2">Admin Login</h1>
+      <p class="text-sm text-gray-500 mb-4">Only authorized admins can access.</p>
+      <form id="loginForm" class="space-y-3">
+        <input id="email" type="email" placeholder="Email" class="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500" autocomplete="username">
+        <input id="password" type="password" placeholder="Password" class="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500" autocomplete="current-password">
+        <button id="loginBtn" type="submit" class="w-full bg-blue-600 text-white rounded-md py-2 hover:bg-blue-700 flex items-center justify-center gap-2 disabled:opacity-60">
+          <span>Login</span><span id="loginSpin" class="hidden spinner"></span>
+        </button>
+        <p id="loginErr" class="text-sm text-red-600"></p>
+      </form>
+    </section>
+
+    <!-- Dashboard -->
+    <section id="dash" class="hidden grid md:grid-cols-5 gap-6">
+      <!-- List -->
+      <div class="md:col-span-2">
+        <div class="bg-white rounded-xl shadow-md p-4">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-lg">Submissions</h2>
+            <span id="countBadge" class="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">0</span>
+          </div>
+          <div class="flex gap-2 mb-3">
+            <div class="relative flex-1">
+              <input id="searchBox" type="text" placeholder="Search name/email…" class="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500">
+              <div id="listSpin" class="hidden absolute right-2 top-1/2 -translate-y-1/2 spinner"></div>
+            </div>
+          </div>
+          <div id="list" class="divide-y max-h-[70vh] overflow-auto"></div>
+          <p id="listErr" class="text-xs text-red-600 mt-2"></p>
+        </div>
+      </div>
+
+      <!-- Detail -->
+      <div class="md:col-span-3">
+        <div id="empty" class="bg-white rounded-xl shadow-md p-8 text-center text-gray-500">Select a student to view details.</div>
+        <div id="panel" class="hidden bg-white rounded-xl shadow-md overflow-hidden">
+          <div class="p-5 border-b">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 id="dName" class="text-xl font-semibold"></h3>
+                <p id="dEmail" class="text-sm text-gray-500"></p>
+              </div>
+              <div class="text-right">
+                <p class="text-xs text-gray-400">Submitted</p>
+                <p id="dSubmitted" class="text-sm font-medium"></p>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-5 grid gap-5">
+            <!-- Auto Score -->
+            <div class="bg-blue-50 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-blue-700 font-medium">Auto Score (Parts I & II)</span>
+                <span id="dAuto" class="text-2xl font-bold text-blue-700">0</span>
+              </div>
+            </div>
+
+            <!-- Part III -->
+            <div>
+              <h4 class="font-semibold mb-2">Part III: Application (15 pts)</h4>
+              <label class="block text-sm text-gray-500 mb-1">Student’s answer</label>
+              <pre id="dApp" class="mono text-sm bg-gray-50 border rounded-md p-3 overflow-auto max-h-64 whitespace-pre-wrap"></pre>
+
+              <div class="mt-3 grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-sm text-gray-600 mb-1">Application Score (0–15)</label>
+                  <input id="inpApp" type="number" min="0" max="15" step="1" class="w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500">
+                  <p id="scoreWarn" class="text-xs text-amber-600 mt-1 hidden">Score adjusted to 0–15 range.</p>
+                </div>
+                <div class="flex items-end gap-2">
+                  <button id="btnFinalize" class="flex-1 bg-green-600 text-white rounded-md py-2 hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    <span>Finalize Score</span><span id="finalizeSpin" class="hidden spinner"></span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Final -->
+            <div class="bg-gray-50 rounded-lg p-4 border">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700 font-medium">Final Score</span>
+                <span id="dFinal" class="text-2xl font-bold text-gray-900">0</span>
+              </div>
+              <p id="dStatus" class="text-xs mt-1 text-gray-500">Status: —</p>
+              <p id="dMeta" class="text-xs mt-1 text-gray-400"></p>
+            </div>
+
+            <!-- Parts I & II details -->
+            <details class="bg-white rounded-lg border">
+              <summary class="cursor-pointer p-3 font-medium">Show Part I & II answers</summary>
+              <div class="p-3 grid gap-4">
+                <div>
+                  <h5 class="font-semibold mb-1">Identification</h5>
+                  <div id="dIdent" class="text-sm space-y-1"></div>
+                </div>
+                <div>
+                  <h5 class="font-semibold mb-1">Matching Type</h5>
+                  <div id="dMatch" class="text-sm space-y-1"></div>
+                </div>
+              </div>
+            </details>
+
+            <p id="detailErr" class="text-xs text-red-600"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Firebase + App -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-auth.js";
+    import { getFirestore, collection, doc, getDoc, onSnapshot, query, where, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.15.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAeozhDcv3sq1vZC6w0MbcV2lde5TatDro",
+      authDomain: "online-exam-system-f24df.firebaseapp.com",
+      projectId: "online-exam-system-f24df",
+      storageBucket: "online-exam-system-f24df.firebasestorage.app",
+      messagingSenderId: "846473898385",
+      appId: "1:846473898385:web:a7dfb984f55b0976d0d230"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // UI refs
+    const whoami = document.getElementById('whoami');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const loginPanel = document.getElementById('loginPanel');
+    const loginForm = document.getElementById('loginForm');
+    const loginBtn = document.getElementById('loginBtn');
+    const loginSpin = document.getElementById('loginSpin');
+    const loginErr = document.getElementById('loginErr');
+    const emailEl = document.getElementById('email');
+    const passEl = document.getElementById('password');
+
+    const dash = document.getElementById('dash');
+    const listEl = document.getElementById('list');
+    const countBadge = document.getElementById('countBadge');
+    const searchBox = document.getElementById('searchBox');
+    const listSpin = document.getElementById('listSpin');
+    const listErr = document.getElementById('listErr');
+
+    const empty = document.getElementById('empty');
+    const panel = document.getElementById('panel');
+    const dName = document.getElementById('dName');
+    const dEmail = document.getElementById('dEmail');
+    const dSubmitted = document.getElementById('dSubmitted');
+    const dAuto = document.getElementById('dAuto');
+    const dApp = document.getElementById('dApp');
+    const inpApp = document.getElementById('inpApp');
+    const dFinal = document.getElementById('dFinal');
+    const dStatus = document.getElementById('dStatus');
+    const dMeta = document.getElementById('dMeta');
+    const dIdent = document.getElementById('dIdent');
+    const dMatch = document.getElementById('dMatch');
+    const btnFinalize = document.getElementById('btnFinalize');
+    const finalizeSpin = document.getElementById('finalizeSpin');
+    const detailErr = document.getElementById('detailErr');
+    const scoreWarn = document.getElementById('scoreWarn');
+
+    let allRows = [];
+    let selected = null;
+    let unsub = null;
+
+    function showLogin() {
+      console.log('[UI] showLogin');
+      loginPanel.classList.remove('hidden');
+      dash.classList.add('hidden');
+      whoami.textContent = '';
+      logoutBtn.classList.add('hidden'); // hide logout when not authenticated
+      loginErr.textContent = '';
+      listErr.textContent = '';
+      detailErr.textContent = '';
+      if (unsub) { unsub(); unsub = null; }
+    }
+    function showDash(user) {
+      console.log('[UI] showDash for', user?.email);
+      loginPanel.classList.add('hidden');
+      dash.classList.remove('hidden');
+      whoami.textContent = user?.email || '';
+      logoutBtn.classList.remove('hidden'); // show logout when authenticated
+    }
+
+    async function assertAdminClient(user) {
+      try {
+        const snap = await getDoc(doc(db, "admins", user.uid));
+        console.log('[admin-check] doc exists?', snap.exists(), 'uid:', user.uid);
+        if (!snap.exists()) {
+          // If they accidentally created admins/{email}
+          const maybe = await getDoc(doc(db, "admins", (user.email || '').toLowerCase()));
+          if (maybe.exists()) {
+            alert('Your admins doc ID is the EMAIL, but it must be the UID from Firebase Auth. Rename the doc to the UID.');
+          }
+        }
+        return snap.exists();
+      } catch (e) {
+        console.warn('[admin-check] read failed:', e?.message || e);
+        return false;
+      }
+    }
+
+    // login submit (supports Enter)
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginErr.textContent = '';
+      loginSpin.classList.remove('hidden');
+      loginBtn.disabled = true;
+      try {
+        console.log('[auth] signing in…');
+        await signInWithEmailAndPassword(auth, (emailEl.value || '').trim(), passEl.value || '');
+        console.log('[auth] sign-in request sent');
+      } catch (e2) {
+        console.error('[auth] sign-in error:', e2);
+        loginErr.textContent = e2.message || 'Login failed.';
+      } finally {
+        loginSpin.classList.add('hidden');
+        loginBtn.disabled = false;
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      try { await signOut(auth); } catch (e) { console.warn('[auth] signout error', e); }
+    });
+
+    onAuthStateChanged(auth, async (user) => {
+      console.log('[auth] state changed →', !!user, user?.email || '');
+      if (!user) { showLogin(); return; }
+
+      const ok = await assertAdminClient(user);
+      if (!ok) {
+        console.log('[auth] not an admin, showing login');
+        showLogin();
+        loginErr.textContent = "Your account is not authorized for admin access.";
+        return;
+      }
+
+      showDash(user);
+      startListener();
+    });
+
+    function startListener() {
+      if (unsub) { unsub(); unsub = null; }
+      listSpin.classList.remove('hidden');
+      listErr.textContent = '';
+
+      // no index required: filter only, then sort on client
+      const qRef = query(collection(db, "students"), where("examSubmitted", "==", true));
+      unsub = onSnapshot(qRef, (snap) => {
+        console.log('[list] snapshot', snap.size);
+        allRows = snap.docs.map(d => ({ id: d.id, data: d.data() }));
+
+        // client-side sort by submittedAt DESC
+        allRows.sort((a, b) => {
+          const ta = a.data.submittedAt?.toMillis ? a.data.submittedAt.toMillis() :
+                     (a.data.submittedAt ? new Date(a.data.submittedAt).getTime() : 0);
+          const tb = b.data.submittedAt?.toMillis ? b.data.submittedAt.toMillis() :
+                     (b.data.submittedAt ? new Date(b.data.submittedAt).getTime() : 0);
+          return tb - ta;
+        });
+
+        applyFilter();
+        listSpin.classList.add('hidden');
+      }, (err) => {
+        console.error('[list] onSnapshot error', err);
+        listSpin.classList.add('hidden');
+        listErr.textContent = (err && err.message) ? err.message : 'Failed to load submissions.';
+      });
+    }
+
+    function applyFilter() {
+      const q = (searchBox.value || "").toLowerCase().trim();
+      const rows = allRows.filter(r => {
+        const d = r.data || {};
+        return !q || (d.name || '').toLowerCase().includes(q) || (d.email || '').toLowerCase().includes(q);
+      });
+      renderList(rows);
+    }
+    searchBox.addEventListener('input', applyFilter);
+
+    function renderList(rows) {
+      listEl.innerHTML = '';
+      countBadge.textContent = rows.length;
+      if (!rows.length) {
+        listEl.innerHTML = `<div class="p-4 text-sm text-gray-500">No submissions found.</div>`;
+        return;
+      }
+      rows.forEach(r => {
+        const d = r.data || {};
+        const statusColor = (d.status === 'finalized') ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+        const btn = document.createElement('button');
+        btn.className = "w-full text-left p-3 hover:bg-gray-50";
+        btn.innerHTML = `
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-medium">${escapeHtml(d.name || '(No name)')}</div>
+              <div class="text-xs text-gray-500">${escapeHtml(d.email || '')}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm font-semibold">${Number(d.finalScore ?? d.autoScore ?? 0)}</div>
+              <span class="text-[11px] px-2 py-0.5 rounded ${statusColor}">${escapeHtml(d.status || '—')}</span>
+            </div>
+          </div>`;
+        btn.addEventListener('click', () => showDetail(r.id, d));
+        listEl.appendChild(btn);
+      });
+    }
+
+    function fmtDate(ts) {
+      try {
+        if (!ts) return '—';
+        if (ts.toDate) return ts.toDate().toLocaleString();
+        const dt = new Date(ts);
+        return isNaN(dt) ? '—' : dt.toLocaleString();
+      } catch { return '—'; }
+    }
+
+    function clampScore(n) {
+      const x = Number.isFinite(+n) ? +n : 0;
+      if (x < 0 || x > 15) scoreWarn.classList.remove('hidden'); else scoreWarn.classList.add('hidden');
+      return Math.max(0, Math.min(15, Math.round(x)));
+    }
+
+    function showDetail(id, d) {
+      selected = { id, data: d };
+      detailErr.textContent = '';
+      empty.classList.add('hidden');
+      panel.classList.remove('hidden');
+
+      dName.textContent = d.name || '(No name)';
+      dEmail.textContent = d.email || '';
+      dSubmitted.textContent = fmtDate(d.submittedAt);
+      dAuto.textContent = Number(d.autoScore ?? 0);
+      dApp.textContent = d.answers?.application || '';
+      inpApp.value = Number(d.applicationScore ?? 0);
+
+      const finalScore = (d.finalScore != null) ? Number(d.finalScore) : (Number(d.autoScore || 0) + Number(d.applicationScore || 0));
+      dFinal.textContent = finalScore;
+      dStatus.textContent = `Status: ${d.status || '—'}`;
+      dMeta.textContent = d.finalizedBy ? `Finalized by ${d.finalizedBy} • ${fmtDate(d.finalizedAt)}` : '';
+
+      // Part I
+      dIdent.innerHTML = '';
+      const idMap = d.answers?.identification || {};
+      for (const k of Object.keys(idMap)) {
+        const row = idMap[k];
+        const ok = !!row?.isCorrect;
+        const el = document.createElement('div');
+        el.innerHTML = `
+          <span class="inline-block w-6 text-right mr-2">${(+k) + 1}.</span>
+          <span class="${ok ? 'text-green-700' : 'text-red-700'} font-medium mr-2">${ok ? '✓' : '✗'}</span>
+          <span>Your: <b>${escapeHtml(row?.userAnswer || '—')}</b></span>
+          <span class="text-gray-500 ml-2">Correct: <b>${escapeHtml(row?.correctAnswer || '—')}</b></span>`;
+        dIdent.appendChild(el);
+      }
+
+      // Part II
+      dMatch.innerHTML = '';
+      const mMap = d.answers?.matching || {};
+      for (const k of Object.keys(mMap)) {
+        const row = mMap[k];
+        const ok = !!row?.isCorrect;
+        const el = document.createElement('div');
+        el.innerHTML = `
+          <span class="inline-block w-6 text-right mr-2">${(+k) + 1}.</span>
+          <span class="${ok ? 'text-green-700' : 'text-red-700'} font-medium mr-2">${ok ? '✓' : '✗'}</span>
+          <span>Your: <b>${escapeHtml(row?.userAnswer || '—')}</b></span>
+          <span class="text-gray-500 ml-2">Correct: <b>${escapeHtml(row?.correctAnswer || '—')}</b></span>`;
+        dMatch.appendChild(el);
+      }
+
+      const locked = d.status === 'finalized';
+      btnFinalize.disabled = locked;
+      inpApp.disabled = locked;
+    }
+
+    btnFinalize.addEventListener('click', async () => {
+      if (!selected) return;
+      detailErr.textContent = '';
+
+      const user = auth.currentUser;
+      if (!user) { detailErr.textContent = 'Not signed in.'; return; }
+
+      const appScore = clampScore(inpApp.value);
+      if (!confirm(`Finalize Part III score as ${appScore}? This will lock the record.`)) return;
+
+      try {
+        finalizeSpin.classList.remove('hidden');
+        btnFinalize.disabled = true;
+
+        await updateDoc(doc(db, "students", selected.id), {
+          applicationScore: appScore,
+          finalScore: (Number(selected.data.autoScore || 0) + appScore),
+          status: "finalized",
+          finalizedBy: user.email || user.uid,
+          finalizedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        selected.data.applicationScore = appScore;
+        selected.data.finalScore = Number(selected.data.autoScore || 0) + appScore;
+        selected.data.status = 'finalized';
+        selected.data.finalizedBy = user.email || user.uid;
+        selected.data.finalizedAt = new Date();
+        showDetail(selected.id, selected.data);
+        alert('Score finalized.');
+      } catch (e) {
+        console.error('[finalize] error', e);
+        detailErr.textContent = e?.message || 'Failed to finalize score.';
+        btnFinalize.disabled = false;
+      } finally {
+        finalizeSpin.classList.add('hidden');
+      }
+    });
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+  </script>
+
+  <script>
+  // Adjust basePath if your repo name changes
+  const basePath = "/gen008exam/";
+
+  if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register(basePath + "service-worker.js")
+        .catch(err => console.error("[SW] registration failed:", err));
+    });
+  }
+</script>
+
+</body>
+</html>
