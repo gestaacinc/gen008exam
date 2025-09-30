@@ -1,6 +1,6 @@
 /* service-worker.js */
 
-const CACHE_NAME = "gen008-cache-v1";
+const CACHE_NAME = "gen008-cache-v4";
 // Only cache same-origin assets you control:
 const APP_SHELL = [
   "./",
