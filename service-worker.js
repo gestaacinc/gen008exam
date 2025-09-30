@@ -1,63 +1,71 @@
-/* service-worker.js */
+// service-worker.js
 
-const CACHE_NAME = "gen008-cache-v4";
-// Only cache same-origin assets you control:
+// Bump this whenever you change what you cache
+const CACHE_NAME = "gen008-cache-v5";
+
+// Determine the base scope (ends with /gen008exam/)
+const BASE = self.registration.scope;
+
+// Only cache same-origin app shell you control
 const APP_SHELL = [
-  "./",
-  "./index.html",
-  "./admin.html",
-  "./offline.html",
-  "./manifest.webmanifest",
-  "./icons/icon-192.png",
-  "./icons/icon-512.png",
-  "./icons/maskable-512.png"
+  BASE,
+  BASE + "index.html",
+  BASE + "admin.html",
+  BASE + "offline.html",
+  BASE + "manifest.webmanifest?v=5",
+  BASE + "icons/icon-192x192.png",
+  BASE + "icons/icon-512x512.png",
+  BASE + "icons/maskable-512x512.png"
 ];
 
-// Install: cache app shell
 self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    for (const url of APP_SHELL) {
+      try {
+        await cache.add(url);
+      } catch (err) {
+        // Don't fail the whole install if one asset is missing
+        console.warn("[SW] skip caching", url, err?.message || err);
+      }
+    }
+  })());
   self.skipWaiting();
 });
 
-// Activate: clean old caches
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))
-    )
-  );
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map(k => (k === CACHE_NAME ? null : caches.delete(k))));
+  })());
   self.clients.claim();
 });
 
-// Fetch: 
-// - same-origin → cache-first (falls back to network, then offline page for HTML)
-// - cross-origin (e.g., Firebase CDN) → network-first (falls back to cache)
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   const url = new URL(req.url);
-  const isSameOrigin = url.origin === self.location.origin;
+  const sameOrigin = url.origin === self.location.origin;
 
-  if (isSameOrigin) {
-    // Cache-first for same-origin
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        if (cached) return cached;
-        return fetch(req).catch(() => {
-          // If it's a navigation request, show offline page
-          if (req.mode === "navigate" || (req.headers.get("accept") || "").includes("text/html")) {
-            return caches.match("./offline.html");
-          }
-        });
-      })
-    );
+  if (sameOrigin) {
+    // Cache-first for your own files; fallback to offline page for HTML navigations
+    event.respondWith((async () => {
+      const cached = await caches.match(req);
+      if (cached) return cached;
+      try {
+        return await fetch(req);
+      } catch {
+        const accept = req.headers.get("accept") || "";
+        if (req.mode === "navigate" || accept.includes("text/html")) {
+          return (await caches.match(BASE + "offline.html")) || Response.error();
+        }
+        return Response.error();
+      }
+    })());
   } else {
-    // Network-first for cross-origin (Firebase CDN, Google Fonts, etc.)
-    event.respondWith(
-      fetch(req)
-        .then((res) => res)
-        .catch(() => caches.match(req)) // best effort if ever cached by browser
-    );
+    // Network-first for cross-origin (Firebase CDN, fonts, etc.)
+    event.respondWith((async () => {
+      try { return await fetch(req); }
+      catch { return (await caches.match(req)) || Response.error(); }
+    })());
   }
 });
